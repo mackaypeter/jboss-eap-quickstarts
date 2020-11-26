@@ -125,7 +125,7 @@ public class RemoteClientServlet extends HttpServlet {
 
         final Context context = new InitialContext(jndiProperties);
 
-        SecuredEJBRemote reference = (SecuredEJBRemote) context.lookup("ejb:/ejb-security/SecuredEJB!"
+        SecuredEJBRemote reference = (SecuredEJBRemote) context.lookup("ejb:/ROOT/SecuredEJB!"
                 + SecuredEJBRemote.class.getName());
 
         return reference;
