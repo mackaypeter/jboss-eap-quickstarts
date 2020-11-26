@@ -1,0 +1,73 @@
+CONFIGURE RH-SSO:
+=================
+get rh-sso from http://download-node-02.eng.bos.redhat.com/released/JBoss-middleware/sso/7.4.3/
+create a superuser rh-sso-7.4/bin/add-user-keycloak.sh -r master -u admin -p pwd
+start rh-sso-7.4/bin/standalone.sh -Djboss.socket.binding.port-offset=100
+
+- log into http://localhost:8180/auth as the superuser
+- go to Roles and create a "user" role
+- navigate to Users and create a user to be associated with the role (I created "testuser")
+    + Credentals -> set a password (I went with "secretPass"), turn off temporary switch
+    + Role Mappings -> assign the "user" role from earlier
+CLients -> Create
+    + ID = "eap"
+    + Protocol = "openid-connect"
+    + after saving: Name = "eap", Access Type = confidential
+    + ValidRedirect URIs = "http://localhost:8080/DEPLOYMENT_NAME", also Root URL, Admin URL
+    + Web Origins = "http://localhost:8080"
+    + after saving there's now a Credentials tab and there's a secret (ef8853b6-ad73-4e82-9ca4-a9c236f396d9), save it for later
+    + Scope -> turn off Full Scope and just assign the user role to make the token simpler
+    + Mappers > create a mapper to move the claim to the top level in the token JSON. Not sure we actually still this, but better safe than sorry:
+        + pick a name
+        + Token Claim Name = "Roles"
+        + Claim JSON Type = String
+        + Add to ID token = false
+        + Add to userinfo = false
+
+CREATE THE KEYSTORE (we shouldn't need a keystore with introspection, so feel free to ignore this):
+====================
+Realm Settings -> Keys -> click "certificate" on the RSA type
+- copy the value and create a file rhsso.pem looking like this:
+-----BEGIN CERTIFICATE-----
+$CERTIFICATE_VALUE
+-----END CERTIFICATE-----
+- keytool -importcert -keystore rhsso.jks -storepass changeme -file rhsso.pem -alias rhsso -trustcacert
+- copy to JBOSS_HOME/standalone/configuration
+
+TRY TO GET THE TOKEN:
+=====================
+curl -sX POST --basic -u "eap:ef8853b6-ad73-4e82-9ca4-a9c236f396d9" "http://localhost:8180/auth/realms/master/protocol/openid-connect/token" -H "Content-Type: application/x-www-form-urlencoded" -d "username=testuser" -d "password=secretPass" -d "grant_type=password" -d "client_id=eap"
+
+
+CONFIGURE EAP:
+=============
+/subsystem=elytron/key-store=jwt-key-store:add(type="JKS", relative-to=jboss.server.config.dir, path="rhsso.jks", credential-reference={clear-text="changeme"})
+
+/subsystem=elytron/token-realm=jwt-realm:add()
+
+/subsystem=elytron/token-realm=jwt-realm:write-attribute(name=oauth2-introspection, value={introspection-url=http://localhost:8180/auth/realms/master/protocol/openid-connect/token/introspect, client-id=eap, client-secret=ef8853b6-ad73-4e82-9ca4-a9c236f396d9})
+
+/subsystem=elytron/security-domain=jwt-domain:add(realms=[{realm=jwt-realm}], permission-mapper=default-permission-mapper, default-realm=jwt-realm)
+
+/subsystem=elytron/http-authentication-factory=jwt-http-authentication-factory:add(security-domain=jwt-domain, http-server-mechanism-factory=global, mechanism-configurations=[{mechanism-name="BEARER_TOKEN", mechanism-realm-configurations=[{realm-name="jwt-realm"}]}])
+
+/subsystem=undertow/application-security-domain=jwt-domain:add(http-authentication-factory=jwt-http-authentication-factory)
+
+reload
+
+
+
+EJB CONFIG:
+===========
+/subsystem=ejb3/application-security-domain=jwt-ejb-auth:add(security-domain=jwt-domain)
+
+/subsystem=remoting/http-connector=http-remoting-connector:write-attribute(name=sasl-authentication-factory,value=application-sasl-authentication)
+
+/subsystem=elytron/sasl-authentication-factory=application-sasl-authentication:write-attribute(name=security-domain,value="jwt-domain")
+
+/subsystem=elytron/sasl-authentication-factory=application-sasl-authentication:undefine-attribute(name=mechanism-configurations)
+
+/subsystem=elytron/sasl-authentication-factory=application-sasl-authentication:write-attribute(name=mechanism-configurations, value=[{mechanism-name=OAUTHBEARER,mechanism-realm-configurations=[{realm-name=jwt-realm}]}])
+
+reload
+
