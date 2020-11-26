@@ -50,8 +50,7 @@ public class RemoteClientServlet extends HttpServlet {
             SecuredEJBRemote securedEJBRemote = lookupEjb();
 
             // invocation of a method without any role requirements, just checking if the correct user is authenticated
-            out.println("\n\n\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
-            out.println("Successfully called secured bean, caller principal " + securedEJBRemote.getSecurityInfo());
+            out.println("Successfully called secured bean, caller principal " + securedEJBRemote.getSecurityInfo() + "<br/>");
 
             // try to access a method requiring the user role
             boolean hasAdminPermission = false;
@@ -59,9 +58,7 @@ public class RemoteClientServlet extends HttpServlet {
                 hasAdminPermission = securedEJBRemote.administrativeMethod();
             } catch (EJBAccessException e) {
             }
-            out.println("\n\n\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
-            out.println("\nPrincipal has user role: " + hasAdminPermission);
-            out.println("\n\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n\n");
+            out.println("Principal has user role: " + hasAdminPermission + "<br/>");
 
             out.println("</body>");
             out.println("</html>");
