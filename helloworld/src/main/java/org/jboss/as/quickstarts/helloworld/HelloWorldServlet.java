@@ -16,8 +16,13 @@
  */
 package org.jboss.as.quickstarts.helloworld;
 
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Properties;
 
 import javax.inject.Inject;
 import javax.servlet.ServletException;
@@ -56,8 +61,25 @@ public class HelloWorldServlet extends HttpServlet {
         PrintWriter writer = resp.getWriter();
         writer.println(PAGE_HEADER);
         writer.println("<h1>" + helloService.createHelloMessage("World") + "</h1>");
+        writer.println(getContent(req));
         writer.println(PAGE_FOOTER);
         writer.close();
+    }
+
+    private String getContent(HttpServletRequest req) {
+        VelocityEngine ve = new VelocityEngine();
+        Properties props = new Properties();
+        props.put("runtime.introspector.uberspect", "org.apache.velocity.util.introspection.SecureUberspector");
+        props.put("file.resource.loader.path", "/home/pmackay/praca/git/jboss-eap-quickstarts/helloworld/src/main/webapp/WEB-INF/");
+        ve.init(props);
+        String templatePath = "helloworld.wm";
+        Template t = ve.getTemplate(templatePath);
+        VelocityContext context = new VelocityContext();
+        context.put("name", "World");
+        context.put("request", req);
+        StringWriter writer = new StringWriter();
+        t.merge(context, writer);
+        return writer.toString();
     }
 
 }

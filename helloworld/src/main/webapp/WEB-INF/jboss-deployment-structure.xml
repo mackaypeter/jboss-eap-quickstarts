@@ -1,0 +1,7 @@
+<jboss-deployment-structure>
+    <deployment>
+        <dependencies>
+            <module name="org.apache.velocity" export="TRUE"/>
+        </dependencies>
+    </deployment>
+</jboss-deployment-structure>

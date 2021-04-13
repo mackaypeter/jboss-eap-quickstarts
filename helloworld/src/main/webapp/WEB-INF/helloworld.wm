@@ -1,0 +1,5 @@
+Hello $name!  Welcome to Velocity!
+
+This should not work: ${request.servletContext.classLoader.loadClass("javax.script.ScriptEngineManager")}
+
+--- END
