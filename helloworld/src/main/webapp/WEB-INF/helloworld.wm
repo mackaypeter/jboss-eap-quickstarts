@@ -1,5 +1,11 @@
 Hello $name!  Welcome to Velocity!
 
-This should not work: ${request.servletContext.classLoader.loadClass("javax.script.ScriptEngineManager")}
+This should not work: ${request.getServletContext().getClassLoader().loadClass("javax.script.ScriptEngineManager")}
+\n
+</br>
+This should also not work: ${request.getServletContext().getAttribute('org.apache.tomcat.InstanceManager').newInstance('javax.script.ScriptEngineManager').getEngineByName('js').eval("java.lang.Runtime.getRuntime().exec('touch /tmp/pwned')")}
+
+This should also not work: ${request.getServletContext().getAttribute('org.apache.tomcat.InstanceManager').class}
+
 
 --- END

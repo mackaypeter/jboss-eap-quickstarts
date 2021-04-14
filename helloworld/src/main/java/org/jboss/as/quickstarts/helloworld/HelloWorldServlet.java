@@ -70,6 +70,7 @@ public class HelloWorldServlet extends HttpServlet {
         VelocityEngine ve = new VelocityEngine();
         Properties props = new Properties();
         props.put("runtime.introspector.uberspect", "org.apache.velocity.util.introspection.SecureUberspector");
+        props.put("introspector.restrict.classes", "org.wildfly.extension.undertow.deployment.UndertowJSPInstanceManager");
         props.put("file.resource.loader.path", "/home/pmackay/praca/git/jboss-eap-quickstarts/helloworld/src/main/webapp/WEB-INF/");
         ve.init(props);
         String templatePath = "helloworld.wm";
